@@ -21,7 +21,7 @@ use alloc::boxed::Box;
 use crate::ast::BinaryOperator;
 use crate::ast::{Expr, Statement};
 use crate::dialect::Dialect;
-use crate::keywords::Keyword;
+use crate::keywords::{self, Keyword};
 use crate::parser::{Parser, ParserError};
 
 /// A [`Dialect`] for [SQLite](https://www.sqlite.org)
@@ -145,5 +145,18 @@ impl Dialect for SQLiteDialect {
 
     fn supports_parens_around_table_factor(&self) -> bool {
         true
+    }
+
+    fn supports_indexed_by(&self) -> bool {
+        true
+    }
+
+    /// `INDEXED BY` and `NOT INDEXED` follow the table name or alias.
+    fn is_table_alias(&self, kw: &Keyword, parser: &mut Parser) -> bool {
+        match kw {
+            Keyword::INDEXED => false,
+            Keyword::NOT => !parser.peek_keyword(Keyword::INDEXED),
+            _ => !keywords::RESERVED_FOR_TABLE_ALIAS.contains(kw),
+        }
     }
 }

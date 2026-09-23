@@ -603,7 +603,7 @@ fn parse_update_with_table_alias() {
                         with_ordinality: false,
                         json_path: None,
                         sample: None,
-                        index_hints: vec![],
+                        index_directives: vec![],
                     },
                     joins: vec![],
                 },
@@ -705,7 +705,7 @@ fn parse_select_with_table_alias() {
                 with_ordinality: false,
                 json_path: None,
                 sample: None,
-                index_hints: vec![],
+                index_directives: vec![],
             },
             joins: vec![],
         }]
@@ -911,7 +911,7 @@ fn parse_where_delete_with_alias_statement() {
                     with_ordinality: false,
                     json_path: None,
                     sample: None,
-                    index_hints: vec![],
+                    index_directives: vec![],
                 },
                 from[0].relation,
             );
@@ -927,7 +927,7 @@ fn parse_where_delete_with_alias_statement() {
                         with_ordinality: false,
                         json_path: None,
                         sample: None,
-                        index_hints: vec![],
+                        index_directives: vec![],
                     },
                     joins: vec![],
                 }]),
@@ -7769,7 +7769,7 @@ fn parse_joins_on() {
                 with_ordinality: false,
                 json_path: None,
                 sample: None,
-                index_hints: vec![],
+                index_directives: vec![],
             },
             global,
             join_operator: f(JoinConstraint::On(Expr::BinaryOp {
@@ -7911,7 +7911,7 @@ fn parse_joins_using() {
                 with_ordinality: false,
                 json_path: None,
                 sample: None,
-                index_hints: vec![],
+                index_directives: vec![],
             },
             global: false,
             join_operator: f(JoinConstraint::Using(vec![ObjectName::from(vec![
@@ -8006,7 +8006,7 @@ fn parse_natural_join() {
                 with_ordinality: false,
                 json_path: None,
                 sample: None,
-                index_hints: vec![],
+                index_directives: vec![],
             },
             global: false,
             join_operator: f(JoinConstraint::Natural),
@@ -10455,7 +10455,7 @@ fn parse_merge() {
                     with_ordinality: false,
                     json_path: None,
                     sample: None,
-                    index_hints: vec![],
+                    index_directives: vec![],
                 }
             );
             assert_eq!(table, table_no_into);
@@ -11932,7 +11932,7 @@ fn parse_pivot_table() {
                 with_ordinality: false,
                 json_path: None,
                 sample: None,
-                index_hints: vec![],
+                index_directives: vec![],
             }),
             aggregate_functions: vec![
                 expected_function("a", None),
@@ -12012,7 +12012,7 @@ fn parse_pivot_table() {
                 with_ordinality: false,
                 json_path: None,
                 sample: None,
-                index_hints: vec![],
+                index_directives: vec![],
             }),
             aggregate_functions: vec![
                 ExprWithAlias {
@@ -12091,7 +12091,7 @@ fn parse_unpivot_table() {
             with_ordinality: false,
             json_path: None,
             sample: None,
-            index_hints: vec![],
+            index_directives: vec![],
         }),
         null_inclusion: None,
         value: Expr::Identifier(Ident::new("quantity")),
@@ -12296,23 +12296,26 @@ fn parse_select_table_with_index_hints() {
     let s = supported_dialects.verified_only_select(
         "SELECT * FROM t1 USE INDEX (i1) IGNORE INDEX FOR ORDER BY (i2) ORDER BY a",
     );
-    if let TableFactor::Table { index_hints, .. } = &s.from[0].relation {
+    if let TableFactor::Table {
+        index_directives, ..
+    } = &s.from[0].relation
+    {
         assert_eq!(
             vec![
-                TableIndexHints {
+                TableIndexDirective::MySql(TableIndexHints {
                     hint_type: TableIndexHintType::Use,
                     index_names: vec!["i1".into()],
                     index_type: TableIndexType::Index,
                     for_clause: None,
-                },
-                TableIndexHints {
+                }),
+                TableIndexDirective::MySql(TableIndexHints {
                     hint_type: TableIndexHintType::Ignore,
                     index_names: vec!["i2".into()],
                     index_type: TableIndexType::Index,
                     for_clause: Some(TableIndexHintForClause::OrderBy),
-                },
+                }),
             ],
-            *index_hints
+            *index_directives
         );
     } else {
         panic!("Expected TableFactor::Table");
@@ -12347,7 +12350,7 @@ fn parse_select_table_with_index_hints() {
                 with_ordinality: false,
                 json_path: None,
                 sample: None,
-                index_hints: vec![],
+                index_directives: vec![],
             },
             joins: vec![],
         }]
@@ -12376,7 +12379,7 @@ fn parse_pivot_unpivot_table() {
                     with_ordinality: false,
                     json_path: None,
                     sample: None,
-                    index_hints: vec![],
+                    index_directives: vec![],
                 }),
                 null_inclusion: None,
                 value: Expr::Identifier(Ident::new("population")),
@@ -18055,7 +18058,7 @@ fn test_nested_join_without_parentheses() {
                         with_ordinality: false,
                         json_path: None,
                         sample: None,
-                        index_hints: vec![],
+                        index_directives: vec![],
                     },
                     joins: vec![Join {
                         relation: TableFactor::Table {
@@ -18068,7 +18071,7 @@ fn test_nested_join_without_parentheses() {
                             with_ordinality: false,
                             json_path: None,
                             sample: None,
-                            index_hints: vec![],
+                            index_directives: vec![],
                         },
                         global: false,
                         join_operator: JoinOperator::Inner(JoinConstraint::On(Expr::BinaryOp {
@@ -18122,7 +18125,7 @@ fn test_nested_join_without_parentheses() {
                         with_ordinality: false,
                         json_path: None,
                         sample: None,
-                        index_hints: vec![],
+                        index_directives: vec![],
                     },
                     joins: vec![Join {
                         relation: TableFactor::Table {
@@ -18135,7 +18138,7 @@ fn test_nested_join_without_parentheses() {
                             with_ordinality: false,
                             json_path: None,
                             sample: None,
-                            index_hints: vec![],
+                            index_directives: vec![],
                         },
                         global: false,
                         join_operator: JoinOperator::Join(JoinConstraint::On(Expr::BinaryOp {
@@ -18189,7 +18192,7 @@ fn test_nested_join_without_parentheses() {
                         with_ordinality: false,
                         json_path: None,
                         sample: None,
-                        index_hints: vec![],
+                        index_directives: vec![],
                     },
                     joins: vec![Join {
                         relation: TableFactor::Table {
@@ -18202,7 +18205,7 @@ fn test_nested_join_without_parentheses() {
                             with_ordinality: false,
                             json_path: None,
                             sample: None,
-                            index_hints: vec![],
+                            index_directives: vec![],
                         },
                         global: false,
                         join_operator: JoinOperator::Left(JoinConstraint::On(Expr::BinaryOp {
@@ -18256,7 +18259,7 @@ fn test_nested_join_without_parentheses() {
                         with_ordinality: false,
                         json_path: None,
                         sample: None,
-                        index_hints: vec![],
+                        index_directives: vec![],
                     },
                     joins: vec![Join {
                         relation: TableFactor::Table {
@@ -18269,7 +18272,7 @@ fn test_nested_join_without_parentheses() {
                             with_ordinality: false,
                             json_path: None,
                             sample: None,
-                            index_hints: vec![],
+                            index_directives: vec![],
                         },
                         global: false,
                         join_operator: JoinOperator::Right(JoinConstraint::On(Expr::BinaryOp {
@@ -18323,7 +18326,7 @@ fn test_nested_join_without_parentheses() {
                         with_ordinality: false,
                         json_path: None,
                         sample: None,
-                        index_hints: vec![],
+                        index_directives: vec![],
                     },
                     joins: vec![Join {
                         relation: TableFactor::Table {
@@ -18336,7 +18339,7 @@ fn test_nested_join_without_parentheses() {
                             with_ordinality: false,
                             json_path: None,
                             sample: None,
-                            index_hints: vec![],
+                            index_directives: vec![],
                         },
                         global: false,
                         join_operator: JoinOperator::FullOuter(JoinConstraint::On(

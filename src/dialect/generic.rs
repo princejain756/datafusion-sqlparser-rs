@@ -173,6 +173,10 @@ impl Dialect for GenericDialect {
         true
     }
 
+    fn supports_in_table_expression(&self) -> bool {
+        true
+    }
+
     fn supports_comment_on(&self) -> bool {
         true
     }

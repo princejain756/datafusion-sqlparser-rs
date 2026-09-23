@@ -20803,3 +20803,27 @@ fn display_nested_unary_minus_in_linear_time() {
         .expect("display should not take exponential time");
     assert_eq!(printed, sql);
 }
+
+#[test]
+fn parse_create_index_operator_class_before_sort_options() {
+    let dialects = all_dialects();
+    dialects.verified_stmt("CREATE INDEX ii ON t(c)");
+    dialects.verified_stmt("CREATE INDEX ii ON t(c ops)");
+    dialects.verified_stmt("CREATE INDEX ii ON t(c DESC)");
+    dialects.verified_stmt("CREATE INDEX ii ON t(c ops DESC)");
+    dialects.verified_stmt("CREATE INDEX ii ON t(c ops DESC NULLS FIRST)");
+
+    let statements = dialects
+        .parse_sql_statements("CREATE INDEX ii ON t(c ops DESC)")
+        .unwrap();
+    let Statement::CreateIndex(create_index) = &statements[0] else {
+        panic!("expected CREATE INDEX")
+    };
+    let column = &create_index.columns[0];
+    assert_eq!(column.column.expr, Expr::Identifier(Ident::new("c")));
+    assert_eq!(
+        column.operator_class,
+        Some(ObjectName::from(vec![Ident::new("ops")]))
+    );
+    assert_eq!(column.column.options.sort, Some(OrderBySort::Desc));
+}

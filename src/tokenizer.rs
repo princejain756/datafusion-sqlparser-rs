@@ -950,8 +950,7 @@ impl<'a> Tokenizer<'a> {
         self.tokenize_with_location_into_buf_with_mapper(buf, |token| token)
     }
 
-    /// Tokenize the statement and produce a vector of tokens, mapping each token
-    /// with provided `mapper`
+    /// Tokenize into the provided buffer, using existing and mapped tokens as context for subsequent tokens.
     pub fn tokenize_with_location_into_buf_with_mapper(
         &mut self,
         buf: &mut Vec<TokenWithSpan>,
@@ -963,14 +962,14 @@ impl<'a> Tokenizer<'a> {
             col: 1,
         };
 
+        let mut prev_non_ws = buf
+            .iter()
+            .rposition(|t| !matches!(t.token, Token::Whitespace(_)));
         let mut location = state.location();
         while let Some(token) = self.next_token(
             &mut state,
             buf.last().map(|t| &t.token),
-            buf.iter()
-                .rev()
-                .find(|t| !matches!(t.token, Token::Whitespace(_)))
-                .map(|t| &t.token),
+            prev_non_ws.map(|index| &buf[index].token),
         )? {
             let span = location.span_to(state.location());
 
@@ -981,10 +980,14 @@ impl<'a> Tokenizer<'a> {
                         && comment.starts_with('!') =>
                 {
                     // Re-tokenize the hints and add them to the buffer
-                    self.tokenize_comment_hints(comment, span, buf, &mut mapper)?;
+                    self.tokenize_comment_hints(comment, span, buf, &mut prev_non_ws, &mut mapper)?;
                 }
                 _ => {
-                    buf.push(mapper(TokenWithSpan { token, span }));
+                    let token = mapper(TokenWithSpan { token, span });
+                    if !matches!(token.token, Token::Whitespace(_)) {
+                        prev_non_ws = Some(buf.len());
+                    }
+                    buf.push(token);
                 }
             }
 
@@ -1000,6 +1003,7 @@ impl<'a> Tokenizer<'a> {
         comment: &str,
         span: Span,
         buf: &mut Vec<TokenWithSpan>,
+        prev_non_ws: &mut Option<usize>,
         mut mapper: impl FnMut(TokenWithSpan) -> TokenWithSpan,
     ) -> Result<(), TokenizerError> {
         // Strip the leading '!' and any version digits (e.g., "50110")
@@ -1028,16 +1032,17 @@ impl<'a> Tokenizer<'a> {
         while let Some(token) = inner.next_token(
             &mut state,
             buf.last().map(|t| &t.token),
-            buf.iter()
-                .rev()
-                .find(|t| !matches!(t.token, Token::Whitespace(_)))
-                .map(|t| &t.token),
+            prev_non_ws.map(|index| &buf[index].token),
         )? {
             let token_span = location.span_to(state.location());
-            buf.push(mapper(TokenWithSpan {
+            let token = mapper(TokenWithSpan {
                 token,
                 span: token_span,
-            }));
+            });
+            if !matches!(token.token, Token::Whitespace(_)) {
+                *prev_non_ws = Some(buf.len());
+            }
+            buf.push(token);
             location = state.location();
         }
 
